@@ -47,6 +47,19 @@ const Index = () => {
 
   const liveCurrentlyReading = myBooks.filter(b => b.status === 'reading');
 
+  const handleRemoveFromLibrary = async (bookId: number) => {
+    try {
+      await api.put(`/api/books/${bookId}`, { status: 'unread', currentPage: 0 });
+      setMyBooks(prev => prev.map(book => 
+        book.id === bookId 
+          ? { ...book, status: 'unread', currentPage: 0 } 
+          : book
+      ));
+    } catch (err) {
+      console.error('Failed to remove book:', err);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'library':
@@ -93,7 +106,7 @@ const Index = () => {
                 <div className="grid grid-cols-2 gap-4">
                   {myBooks.filter(book => book.status !== 'unread').map((book) => (
                     <Link to={`/books/${book.id}`} key={book.id} className="block">
-                      <BookCard book={book as any} variant="library" />
+                      <BookCard book={book as any} variant="library" onRemove={handleRemoveFromLibrary} />
                     </Link>
                   ))}
                 </div>
