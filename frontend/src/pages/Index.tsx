@@ -7,7 +7,6 @@ import BottomNav from '../components/BottomNav';
 import HeaderNav from '../components/HeaderNav';
 import BrowseLibrary from '../components/BrowseLibrary';
 import { Link } from 'react-router-dom';
-import { currentlyReading, readingStats } from '../data/dummyData';
 
 interface BookData {
   id: number;
@@ -24,12 +23,29 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [libraryView, setLibraryView] = useState('my-books'); // 'my-books' or 'browse'
   const [myBooks, setMyBooks] = useState<BookData[]>([]);
+  const [stats, setStats] = useState<any>({
+    totalBooks: 0,
+    pagesThisWeek: 0,
+    favouriteGenre: '-',
+    currentStreak: 0,
+    avgRating: 0
+  });
+
+  const username = localStorage.getItem('username');
 
   useEffect(() => {
     api.get<{data: BookData[]}>('/api/books')
       .then(res => setMyBooks(res.data.data))
       .catch(err => console.error(err));
-  }, []);
+      
+    if (username) {
+      api.get('/api/stats')
+        .then(res => setStats(res.data))
+        .catch(err => console.error(err));
+    }
+  }, [username]);
+
+  const liveCurrentlyReading = myBooks.filter(b => b.status === 'reading');
 
   const renderContent = () => {
     switch (activeTab) {
@@ -113,8 +129,8 @@ const Index = () => {
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-gray-800">Currently Reading</h2>
             <div className="space-y-4">
-              {currentlyReading.map((book) => (
-                <ProgressCard key={book.id} book={book} />
+              {liveCurrentlyReading.map((book) => (
+                <ProgressCard key={book.id} book={book as any} />
               ))}
             </div>
           </div>
@@ -126,22 +142,42 @@ const Index = () => {
               <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <User className="text-white" size={32} />
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Book Lover</h2>
-              <p className="text-gray-600">Reading enthusiast since 2020</p>
+              <h2 className="text-xl font-bold text-gray-800">{username || "Guest"}</h2>
+              <p className="text-gray-600 mb-4">Reading enthusiast</p>
+              
+              {username ? (
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    window.location.reload();
+                  }}
+                  className="px-6 py-2 bg-red-50 text-red-600 rounded-full font-medium hover:bg-red-100 transition-colors"
+                >
+                  Log Out
+                </button>
+              ) : (
+                <Link 
+                  to="/login"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors inline-block"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
             
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-blue-50 rounded-xl">
-                <div className="text-2xl font-bold text-blue-600">{readingStats.totalBooks}</div>
+                <div className="text-2xl font-bold text-blue-600">{stats.totalBooks}</div>
                 <div className="text-sm text-gray-600">Books Read</div>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-xl">
-                <div className="text-2xl font-bold text-green-600">{readingStats.currentStreak}</div>
-                <div className="text-sm text-gray-600">Day Streak</div>
+                <div className="text-2xl font-bold text-green-600">{stats.favouriteGenre}</div>
+                <div className="text-sm text-gray-600">Fav Genre</div>
               </div>
               <div className="text-center p-4 bg-purple-50 rounded-xl">
-                <div className="text-2xl font-bold text-purple-600">{readingStats.avgRating}</div>
-                <div className="text-sm text-gray-600">Avg Rating</div>
+                <div className="text-2xl font-bold text-purple-600">{stats.pagesThisWeek}</div>
+                <div className="text-sm text-gray-600">Pages Read</div>
               </div>
             </div>
           </div>
@@ -150,8 +186,8 @@ const Index = () => {
         return (
           <div className="space-y-6">
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white">
-              <h2 className="text-xl font-bold mb-2">Welcome back!</h2>
-              <p className="opacity-90">You've read {readingStats.pagesThisWeek} pages this week</p>
+              <h2 className="text-xl font-bold mb-2">Welcome back{username ? `, ${username}` : ''}!</h2>
+              <p className="opacity-90">You've read {stats.pagesThisWeek} pages this week</p>
               <div className="mt-4 bg-white/20 rounded-full h-2">
                 <div className="bg-white rounded-full h-2 w-3/4"></div>
               </div>
@@ -160,8 +196,8 @@ const Index = () => {
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-3">Continue Reading</h3>
               <div className="space-y-3">
-                {currentlyReading.slice(0, 2).map((book) => (
-                  <ProgressCard key={book.id} book={book} />
+                {liveCurrentlyReading.slice(0, 2).map((book) => (
+                  <ProgressCard key={book.id} book={book as any} />
                 ))}
               </div>
             </div>

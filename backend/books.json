@@ -82,6 +82,28 @@
       "pages": 688,
       "genre": "Sci-Fi",
       "status": "want-to-read"
+    },
+    {
+      "id": 9,
+      "title": "The Great Gatsby",
+      "author": "F. Scott Fitzgerald",
+      "cover": "",
+      "rating": 0,
+      "pages": 218,
+      "currentPage": 0,
+      "genre": "",
+      "status": "want-to-read"
+    },
+    {
+      "id": 10,
+      "title": "The Great Gatsby",
+      "author": "F. Scott Fitzgerald",
+      "cover": "",
+      "rating": 0,
+      "pages": 218,
+      "currentPage": 0,
+      "genre": "",
+      "status": "want-to-read"
     }
   ]
 }
