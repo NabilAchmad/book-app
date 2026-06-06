@@ -12,8 +12,17 @@ interface Book {
   cover: string;
   rating: number;
   pages: number;
+  currentPage?: number;
   genre: string;
-  status: 'read' | 'reading' | 'want-to-read';
+  status: 'read' | 'reading' | 'want-to-read' | 'unread' | string;
+}
+
+interface PaginatedResponse {
+  data: Book[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
 }
 
 const BrowseLibrary = () => {
@@ -40,14 +49,26 @@ const BrowseLibrary = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalBooks, setTotalBooks] = useState(0);
 
-  // Fetch books from the backend
+  // Fetch books from the backend when search, genre, or page changes
   useEffect(() => {
     const fetchBooks = async () => {
       try {
         setLoading(true);
-        const response = await api.get<Book[]>('/api/books');
-        setBooks(response.data);
+        const response = await api.get<PaginatedResponse>('/api/books', {
+          params: {
+            q: searchTerm,
+            genre: selectedGenre,
+            page: page,
+            limit: 6
+          }
+        });
+        setBooks(response.data.data);
+        setTotalPages(response.data.totalPages);
+        setTotalBooks(response.data.total);
         setError(null);
       } catch (err) {
         setError('Failed to fetch books. Please try again later.');
@@ -57,19 +78,20 @@ const BrowseLibrary = () => {
       }
     };
 
-    fetchBooks();
-  }, []);
+    const timerId = setTimeout(() => {
+      fetchBooks();
+    }, 300); // 300ms debounce
 
-  // Get unique genres from books
-  const genres = ['all', ...new Set(books.map(book => book.genre))];
+    return () => clearTimeout(timerId);
+  }, [searchTerm, selectedGenre, page]);
 
-  // Filter books based on search term and selected genre
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGenre = selectedGenre === 'all' || book.genre === selectedGenre;
-    return matchesSearch && matchesGenre;
-  });
+  // Reset page when search or genre changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedGenre]);
+
+  // Hardcoded genres since we can't extract them perfectly from paginated results
+  const genres = ['all', 'Classic', 'Fiction', 'Dystopian', 'Romance', 'Coming-of-age', 'Fantasy', 'Sci-Fi'];
 
   // Handle adding a book to library
   const handleAddBook = async (bookId: number) => {
@@ -144,12 +166,12 @@ const BrowseLibrary = () => {
 
       {/* Results Count */}
       <p className="text-sm text-gray-600">
-        {filteredBooks.length} book{filteredBooks.length !== 1 ? 's' : ''} found
+        {totalBooks} book{totalBooks !== 1 ? 's' : ''} found
       </p>
 
       {/* Books Grid */}
       <div className="space-y-3">
-        {filteredBooks.map((book) => (
+        {books.map((book) => (
           <div key={book.id} className="relative block">
             <Link to={`/books/${book.id}`} className="block">
               <BookCard book={book} variant="discover" />
@@ -170,9 +192,30 @@ const BrowseLibrary = () => {
         ))}
       </div>
 
-      {filteredBooks.length === 0 && (
+      {books.length === 0 && !loading && (
         <div className="text-center py-8">
           <p className="text-gray-500">No books found matching your criteria</p>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-4 pt-4">
+          <button 
+            disabled={page === 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-600">Page {page} of {totalPages}</span>
+          <button 
+            disabled={page === totalPages}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 disabled:opacity-50"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

@@ -10,8 +10,9 @@ interface Book {
     cover: string;
     rating: number;
     pages: number;
+    currentPage?: number;
     genre: string;
-    status: 'read' | 'reading' | 'want-to-read';
+    status: 'read' | 'reading' | 'want-to-read' | 'unread' | string;
 }
 const BookDetail = () => {
     const { id } = useParams<{ id: string }>();
@@ -40,23 +41,48 @@ const BookDetail = () => {
             fetchBook();
         }
     }, [id]);
-    const handleAddBook = async () => {
+    const handleUpdateStatus = async (newStatus: string) => {
         if (!book) return;
         try {
             setIsAdding(true);
             const response = await api.put<Book>(`/api/books/${book.id}`, {
-                status: 'want-to-read'
+                status: newStatus
             });
             setBook(response.data);
             toast({
-                title: "Added to Library",
-                description: `"${book.title}" has been added to your reading list.`,
+                title: "Status Updated",
+                description: `Book status changed to ${newStatus.replace('-', ' ')}.`,
             });
-        } catch (err) {
-            console.error('Error adding book:', err);
+        } catch (err: any) {
+            console.error('Error updating status:', err);
             toast({
                 title: "Error",
-                description: "Failed to add book. Please try again.",
+                description: err.response?.data?.errors?.status || "Failed to update status. Please try again.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const handleUpdateProgress = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!book) return;
+        try {
+            setIsAdding(true);
+            const response = await api.put<Book>(`/api/books/${book.id}`, {
+                currentPage: book.currentPage
+            });
+            setBook(response.data);
+            toast({
+                title: "Progress Updated",
+                description: `You are on page ${book.currentPage}.`,
+            });
+        } catch (err: any) {
+            console.error('Error updating progress:', err);
+            toast({
+                title: "Error",
+                description: err.response?.data?.errors?.currentPage || "Failed to update progress.",
                 variant: "destructive"
             });
         } finally {
@@ -131,29 +157,46 @@ const BookDetail = () => {
                                 {book.pages} pages
                             </span>
                         </div>
-                        <div className="pt-4 border-t border-gray-100">
-                            {book.status === 'want-to-read' ? (
-                                <button
-                                    disabled
-                                    className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-medium cursor-not-allowed flex items-center justify-center"
-                                >
-                                    Already in Library
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleAddBook}
+                        <div className="pt-4 border-t border-gray-100 space-y-4">
+                            <div className="flex flex-col text-left">
+                                <label className="text-sm font-semibold text-gray-700 mb-1">Library Status</label>
+                                <select 
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-800"
+                                    value={book.status === 'unread' ? '' : book.status}
+                                    onChange={(e) => handleUpdateStatus(e.target.value)}
                                     disabled={isAdding}
-                                    className="w-full py-3 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    {isAdding ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                    ) : (
-                                        <>
-                                            <Plus size={20} />
-                                            <span>Add to Library</span>
-                                        </>
-                                    )}
-                                </button>
+                                    <option value="" disabled>Add to Library...</option>
+                                    <option value="want-to-read">Want to Read</option>
+                                    <option value="reading">Currently Reading</option>
+                                    <option value="read">Read</option>
+                                </select>
+                            </div>
+
+                            {book.status === 'reading' && (
+                                <form onSubmit={handleUpdateProgress} className="flex flex-col text-left pt-2 border-t border-gray-100">
+                                    <label className="text-sm font-semibold text-gray-700 mb-1">Update Progress (Pages)</label>
+                                    <div className="flex space-x-2">
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            max={book.pages}
+                                            value={book.currentPage === 0 ? '' : book.currentPage}
+                                            onChange={(e) => setBook({...book, currentPage: e.target.value === '' ? 0 : parseInt(e.target.value)})}
+                                            className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <button 
+                                            type="submit"
+                                            disabled={isAdding}
+                                            className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-70"
+                                        >
+                                            Save
+                                        </button>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+                                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min(100, Math.max(0, ((book.currentPage || 0) / book.pages) * 100))}%` }}></div>
+                                    </div>
+                                </form>
                             )}
                         </div>
                     </div>

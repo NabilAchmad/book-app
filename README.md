@@ -1,10 +1,20 @@
 # Test Instruction
 
-Hi there! 👋  
-Thanks for applying to our company.
-
-This is a small take-home assignment where you'll contribute to a simple **Book Tracker App**.  
-You can choose how to contribute based on your strongest area: **Frontend, Backend, DevOps, QA, or Data**.
+## 📝 Submission Notes
+- **Role**: Mid-Level Fullstack Developer
+- **How to run/test**: 
+  1. Start the backend (`python app.py` in `backend/`)
+  2. Start the frontend (`npm run dev` in `frontend/`)
+  3. Try searching and filtering in the "Browse" section—it now fetches live from `GET /api/books?q=&genre=&page=`.
+  4. Notice the pagination controls at the bottom of the Browse section.
+  5. Go to a Book Detail page. You can now update the reading status (Want to Read / Reading / Read).
+  6. If you set the status to "Reading", a new input will appear allowing you to track your current reading page (progress bar will update globally).
+  7. Input validation will catch negative pages or strings via backend 400 responses.
+- **Notes & Decisions**: 
+  - Restructured backend `GET /api/books` to return `{ data, total, page, totalPages, limit }` to handle server-side search and pagination.
+  - Added strict input validation for `POST` and `PUT` /api/books.
+  - Rewrote frontend Axios consumers to handle the nested `response.data.data` structure.
+  - Implemented `currentPage` logic and computed progress bars using simple inline math styles (`width: %`).
 
 ---
 
