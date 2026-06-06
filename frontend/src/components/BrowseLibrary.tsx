@@ -1,5 +1,6 @@
 import { Search, Filter, Star, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import BookCard from './BookCard';
 
@@ -16,8 +17,26 @@ interface Book {
 }
 
 const BrowseLibrary = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get('search') || '';
+  const selectedGenre = searchParams.get('genre') || 'all';
+
+  const setSearchTerm = (term: string) => {
+    setSearchParams(prev => {
+      if (term) prev.set('search', term);
+      else prev.delete('search');
+      return prev;
+    });
+  };
+
+  const setSelectedGenre = (genre: string) => {
+    setSearchParams(prev => {
+      if (genre !== 'all') prev.set('genre', genre);
+      else prev.delete('genre');
+      return prev;
+    });
+  };
+
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +62,11 @@ const BrowseLibrary = () => {
 
   // Get unique genres from books
   const genres = ['all', ...new Set(books.map(book => book.genre))];
-  
+
   // Filter books based on search term and selected genre
   const filteredBooks = books.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.author.toLowerCase().includes(searchTerm.toLowerCase());
+      book.author.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGenre = selectedGenre === 'all' || book.genre === selectedGenre;
     return matchesSearch && matchesGenre;
   });
@@ -59,8 +78,8 @@ const BrowseLibrary = () => {
         status: 'want-to-read'
       });
       // Update local state
-      setBooks(books.map(book => 
-        book.id === bookId 
+      setBooks(books.map(book =>
+        book.id === bookId
           ? { ...book, status: 'want-to-read' }
           : book
       ));
@@ -113,11 +132,10 @@ const BrowseLibrary = () => {
           <button
             key={genre}
             onClick={() => setSelectedGenre(genre)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              selectedGenre === genre
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedGenre === genre
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             {genre === 'all' ? 'All Genres' : genre}
           </button>
@@ -132,10 +150,12 @@ const BrowseLibrary = () => {
       {/* Books Grid */}
       <div className="space-y-3">
         {filteredBooks.map((book) => (
-          <div key={book.id} className="relative">
-            <BookCard book={book} variant="discover" />
+          <div key={book.id} className="relative block">
+            <Link to={`/books/${book.id}`} className="block">
+              <BookCard book={book} variant="discover" />
+            </Link>
             {book.status === 'want-to-read' ? (
-              <button 
+              <button
                 className="absolute top-4 right-4 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors shadow-lg"
                 onClick={() => handleAddBook(book.id)}
               >
